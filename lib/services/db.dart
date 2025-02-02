@@ -12,29 +12,37 @@ class DatabaseService {
 
   DatabaseService._internal();
 
-  static Future<Database> get database async {
+  Future<Database?> get database async {
     if (_database != null) return _database!;
 
-    _database = await initDB();
+    _database = await initDatabase();
     return _database!;
+  }
+
+  Future<void> deleteDatabaseIfNeeded() async {
+    var dbPath = await getDatabasesPath();
+    String path = join(dbPath, 'Ceiba.db');
+    await deleteDatabase(path);
   }
 
   Future<Database?> get db async {
     if (_database != null) return _database!;
 
-    _database = await initDB();
+    _database = await initDatabase();
     return _database!;
   }
 
-  static Future<Database> initDB() async {
+  Future<Database> initDatabase() async {
     String path = await getDatabasesPath();
     String fullPath = join(path, 'Ceiba.db');
 
-    return openDatabase(
+    return await openDatabase(
       fullPath,
-      version: 1,
+      version: 7,
       onCreate: (Database db, int version) async {
-       await db.execute('''CREATE TABLE Users (
+        print("🔴 Creando tablas...");
+
+        await db.execute('''CREATE TABLE Users (
     id INTEGER PRIMARY KEY,
     name TEXT,
     username TEXT,
@@ -43,20 +51,26 @@ class DatabaseService {
     website TEXT
 )''');
 
-await db.execute('''CREATE TABLE Address (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+        await db.execute('''CREATE TABLE Address (
+    
     userId INTEGER,
     street TEXT,
     suite TEXT,
     city TEXT,
     zipcode TEXT,
-    lat TEXT,
-    lng TEXT,
+    geoId INTEGER,
     FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE
+    FOREIGN KEY (geoId) REFERENCES Geo(id) ON DELETE CASCADE
 )''');
 
-await db.execute('''CREATE TABLE Company (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+        await db.execute('''CREATE TABLE Posts (
+    id INTEGER PRIMARY KEY,
+    userId INTEGER,
+    title TEXT,
+    body TEXT
+)''');
+
+        await db.execute('''CREATE TABLE Company (
     userId INTEGER,
     name TEXT,
     catchPhrase TEXT,
@@ -64,16 +78,7 @@ await db.execute('''CREATE TABLE Company (
     FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE
 )''');
 
-        await db.execute('''CREATE TABLE Companies (
-    id INTEGER PRIMARY KEY ,
-    userId INTEGER,
-    name TEXT,
-    catchPhrase TEXT,
-    bs TEXT,
-    FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE
-)''');
-
- await db.execute('''CREATE TABLE Comments (
+        await db.execute('''CREATE TABLE Comments (
     id INTEGER PRIMARY KEY,
     postId INTEGER,
     name TEXT,
@@ -81,13 +86,13 @@ await db.execute('''CREATE TABLE Company (
     body TEXT
 )''');
 
-await db.execute('''CREATE TABLE Albums (
+        await db.execute('''CREATE TABLE Albums (
     id INTEGER PRIMARY KEY,
     userId INTEGER,
     title TEXT
 )''');
 
-await db.execute('''CREATE TABLE Photos (
+        await db.execute('''CREATE TABLE Photos (
     id INTEGER PRIMARY KEY,
     albumId INTEGER,
     title TEXT,
@@ -95,15 +100,20 @@ await db.execute('''CREATE TABLE Photos (
     thumbnailUrl TEXT
 )''');
 
-await db.execute('''CREATE TABLE Todos (
+        await db.execute('''CREATE TABLE Todos (
     id INTEGER PRIMARY KEY,
     userId INTEGER,
     title TEXT,
     completed INTEGER
 )''');
 
+        await db.execute('''CREATE TABLE Geo (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  lat TEXT,
+  lng TEXT
+)''');
 
-
+        print("🔴 Tablas creadas.");
       },
     );
   }
